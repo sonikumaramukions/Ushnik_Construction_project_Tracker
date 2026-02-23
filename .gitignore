@@ -1,0 +1,115 @@
+# =========================
+# Dependencies
+# =========================
+node_modules/
+package-lock.json
+*.lock
+
+# =========================
+# Environment Variables
+# =========================
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+.env.test
+.env*.local
+
+# =========================
+# Build Output
+# =========================
+frontend/build/
+dist/
+out/
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# =========================
+# IDE / Editor Files
+# =========================
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# =========================
+# Backend Specific
+# =========================
+backend/uploads/*
+!backend/uploads/.gitkeep
+backend/logs/
+backend/*.log
+
+# =========================
+# Backup & Temp Files
+# =========================
+*.backup
+*.bak
+*.tmp
+*.temp
+*.orig
+
+# =========================
+# Coverage & Testing
+# =========================
+coverage/
+.nyc_output/
+*.lcov
+
+# =========================
+# Misc
+# =========================
+.cache/
+.parcel-cache/
+.eslintcache
+*.tsbuildinfo
+
+# =========================
+# Dev/Test Files (not for client)
+# =========================
+frontend/src/index-*.tsx
+frontend/src/App-minimal.tsx
+frontend/src/TestApp.tsx
+frontend/src/demo.tsx
+backend/test-all.sh
+backend/database.sqlite
+backend/_test_api.sh
+backend/_reset_pwd.js
+
+# Internal development docs
+COMPLETE_SUMMARY.md
+FEATURES_API_GUIDE.md
+FRONTEND_COMPLETE.md
+FRONTEND_UPDATES.md
+HOW_TO_SEE_UPDATES.md
+IMPLEMENTATION_COMPLETE.md
+PUSH_FORMULA_FIXES.md
+REFACTORING_SUMMARY.md
+VERIFICATION_CHECKLIST.md
