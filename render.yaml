@@ -1,0 +1,65 @@
+# render.yaml – Infrastructure-as-Code config for Render.com
+# Commit this file to your repo root. Render will auto-detect it.
+#
+# HOW TO DEPLOY:
+# 1. Push this repo to GitHub.
+# 2. Go to https://dashboard.render.com → New → Blueprint
+# 3. Connect your repo – Render will read this file and create both
+#    the PostgreSQL database and the web service automatically.
+# 4. After the first deploy, set the following env vars in the Render dashboard
+#    under the web service → Environment:
+#      CORS_ALLOWED_ORIGINS = https://<your-vercel-app>.vercel.app
+#      CSRF_TRUSTED_ORIGINS = https://<your-render-service>.onrender.com https://<your-vercel-app>.vercel.app
+#      DJANGO_ALLOWED_HOSTS = <your-render-service>.onrender.com
+#    (DATABASE_URL and DJANGO_SECRET_KEY are auto-set by this blueprint)
+
+databases:
+  - name: ushnik-construction-db
+    databaseName: ushnik_construction
+    user: ushnik_user
+    plan: free          # Upgrade to starter/standard for production
+
+services:
+  - type: web
+    name: ushnik-construction-backend
+    runtime: python
+    rootDir: backend    # All commands run from the /backend folder
+    buildCommand: bash build.sh
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    plan: free          # Upgrade as needed
+    healthCheckPath: /api/
+    autoDeploy: true
+
+    envVars:
+      # Auto-generated secure secret key
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+
+      # Disable debug in production
+      - key: DJANGO_DEBUG
+        value: "False"
+
+      # Render provides the hostname – set after first deploy or use wildcard
+      - key: DJANGO_ALLOWED_HOSTS
+        value: ".onrender.com"
+
+      # Auto-injected connection string from the PostgreSQL database above
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ushnik-construction-db
+          property: connectionString
+
+      # Set CORS to allow your Vercel frontend.
+      # Replace with your actual Vercel URL after the frontend is deployed.
+      - key: CORS_ALLOWED_ORIGINS
+        value: "https://your-app.vercel.app"
+
+      # Trusted origins for CSRF (Django 4+ requirement for secure forms/cookies)
+      - key: CSRF_TRUSTED_ORIGINS
+        value: "https://your-render-service.onrender.com https://your-app.vercel.app"
+
+      # JWT token lifetimes (optional overrides)
+      - key: JWT_ACCESS_MINUTES
+        value: "60"
+      - key: JWT_REFRESH_DAYS
+        value: "7"

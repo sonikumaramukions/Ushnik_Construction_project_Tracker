@@ -1,6 +1,7 @@
 from pathlib import Path
 from datetime import timedelta
 import os
+import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -17,7 +18,14 @@ SECRET_KEY = os.getenv(
 
 DEBUG = os.getenv("DJANGO_DEBUG", "True").lower() in {"1", "true", "yes"}
 
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "").split() or []
+# In production (Render), set DJANGO_ALLOWED_HOSTS to your Render domain:
+# e.g. "your-app.onrender.com" (space-separated for multiple)
+_raw_hosts = os.getenv("DJANGO_ALLOWED_HOSTS", "")
+ALLOWED_HOSTS = _raw_hosts.split() if _raw_hosts else ["localhost", "127.0.0.1"]
+
+# Trust Render and Vercel origins for CSRF
+_trusted_raw = os.getenv("CSRF_TRUSTED_ORIGINS", "")
+CSRF_TRUSTED_ORIGINS = _trusted_raw.split() if _trusted_raw else []
 
 
 # Application definition
@@ -35,6 +43,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
+    'whitenoise.runserver_nostatic',
 
     # Local apps
     'core',
@@ -42,6 +51,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # WhiteNoise must be right after SecurityMiddleware to serve static files in production
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -72,16 +83,24 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
-DATABASES = {
-    # Default to SQLite for an easy localhost setup.
-    # This can be switched to Postgres by updating ENGINE and credentials.
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# On Render, set DATABASE_URL env var (auto-provided when you attach a PostgreSQL db).
+# Locally, falls back to SQLite for easy setup.
+_DATABASE_URL = os.getenv("DATABASE_URL", "")
+if _DATABASE_URL:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=_DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # Password validation
@@ -118,7 +137,20 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+# WhiteNoise requires STATIC_ROOT to collect static files into.
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# Django 4.2+ uses STORAGES dict; we set WhiteNoise as the static files backend
+# for compressed, cache-busted static file serving in production.
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
@@ -156,7 +188,9 @@ SIMPLE_JWT = {
     "BLACKLIST_AFTER_ROTATION": True,
 }
 
-# Allow the Vite dev server to call the API during local development.
+# CORS
+# In production, set CORS_ALLOWED_ORIGINS env var to your Vercel frontend URL(s):
+# e.g. "https://your-app.vercel.app" (space-separated for multiple)
 _default_cors = [
     "http://localhost:5173",
     "http://localhost:5174",
@@ -166,3 +200,6 @@ if extra_cors:
     _default_cors.extend([origin for origin in extra_cors.split() if origin])
 
 CORS_ALLOWED_ORIGINS = _default_cors
+
+# Allow credentials in cross-origin requests (needed for JWT in headers)
+CORS_ALLOW_CREDENTIALS = True
